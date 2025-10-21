@@ -1,0 +1,14 @@
+numpy
+pandas
+scikit-learn
+streamlit
+nltk
+plotly
+wordcloud
+matplotlib
+textblob
+beautifulsoup4
+requests
+joblib
+langdetect
+spacy
