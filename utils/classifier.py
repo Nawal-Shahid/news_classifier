@@ -8,6 +8,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, classification_report, f1_score
 from sklearn.model_selection import cross_val_score, StratifiedKFold
 import warnings
+import os
 
 warnings.filterwarnings('ignore')
 
@@ -28,19 +29,31 @@ class NewsClassifier:
         self.performance_metrics = {}
         self.categories = CATEGORIES
         
-        # Try to load models automatically when initialized
-        self._try_load_models()
+        # Auto-load models on initialization
+        self._auto_load_models()
 
-    def _try_load_models(self):
-        """Try to load pre-trained models on initialization"""
+    def _auto_load_models(self):
+        """Automatically load models if they exist, without raising errors"""
         try:
-            if self.load_models():
-                print("✅ Models loaded successfully!")
+            # Check if model files exist
+            required_files = [
+                'vectorizer.pkl', 'preprocessor.pkl', 'categories.pkl',
+                'naive_bayes.pkl', 'svm.pkl', 'random_forest.pkl'
+            ]
+            
+            all_files_exist = all((MODELS_DIR / file).exists() for file in required_files)
+            
+            if all_files_exist:
+                success = self.load_models(silent=True)
+                if success:
+                    print("✅ Models auto-loaded successfully on startup!")
+                else:
+                    print("⚠️ Models exist but couldn't be loaded. Training required.")
             else:
-                print("❌ No pre-trained models found. Please train models first.")
+                print("ℹ️ No pre-trained models found. Training required.")
+                
         except Exception as e:
-            print(f"❌ Error loading models: {e}")
-            print("💡 Please run train_model.py first to train the models")
+            print(f"⚠️ Auto-load attempt failed: {e}")
 
     def train(self, texts, labels):
         """Train all models with comprehensive evaluation"""
@@ -90,7 +103,7 @@ class NewsClassifier:
     def predict(self, text):
         """Predict category for new text with confidence scores"""
         if not self.is_trained:
-            raise ValueError("Models must be trained before prediction. Please run train_model.py first.")
+            raise ValueError("Models must be trained before prediction. Please train or load models first.")
 
         processed_text = self.preprocessor.preprocess_single(text)
         X = self.vectorizer.transform([processed_text])
@@ -140,49 +153,34 @@ class NewsClassifier:
 
         print("✅ Models saved successfully!")
 
-    def load_models(self):
+    def load_models(self, silent=False):
         """Load pre-trained models"""
-        import os
-        
-        # Debug: Show what path we're looking in
-        print(f"🔍 Looking for models in: {MODELS_DIR}")
-        print(f"🔍 Path exists: {MODELS_DIR.exists()}")
-        
-        if MODELS_DIR.exists():
-            print(f"🔍 Files in directory: {list(MODELS_DIR.glob('*.pkl'))}")
-        
         try:
             self.vectorizer = joblib.load(MODELS_DIR / 'vectorizer.pkl')
-            print("✅ Loaded vectorizer.pkl")
-            
             self.preprocessor = joblib.load(MODELS_DIR / 'preprocessor.pkl')
-            print("✅ Loaded preprocessor.pkl")
-            
             self.categories = joblib.load(MODELS_DIR / 'categories.pkl')
-            print("✅ Loaded categories.pkl")
             
-            self.model_performance = joblib.load(MODELS_DIR / 'performance.pkl')
-            print("✅ Loaded performance.pkl")
+            # Load performance metrics if exists
+            performance_file = MODELS_DIR / 'performance.pkl'
+            if performance_file.exists():
+                self.model_performance = joblib.load(performance_file)
 
             for name in self.models.keys():
                 filename = name.lower().replace(' ', '_') + '.pkl'
                 self.models[name] = joblib.load(MODELS_DIR / filename)
-                print(f"✅ Loaded {filename}")
 
             self.is_trained = True
-            print("✅ All models loaded successfully!")
+            if not silent:
+                print("✅ Models loaded successfully!")
             return True
             
         except FileNotFoundError as e:
-            print(f"❌ Model file not found: {e}")
-            print(f"💡 Make sure models are in: {MODELS_DIR}")
-            print(f"💡 Run 'python train_model.py' to create models")
+            if not silent:
+                print(f"❌ Model files not found: {e}")
             return False
-            
         except Exception as e:
-            print(f"❌ Error loading models: {e}")
-            import traceback
-            traceback.print_exc()
+            if not silent:
+                print(f"❌ Error loading models: {e}")
             return False
 
     def get_feature_importance(self, top_n=15):

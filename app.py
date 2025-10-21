@@ -39,43 +39,27 @@ def load_css():
         pass
 
 
-# Cache the classifier to load models only once and keep in memory
-@st.cache_resource
-def load_classifier():
-    """
-    Load classifier with models - cached across all sessions.
-    This runs only ONCE when the app starts, then stays in memory.
-    """
-    classifier = NewsClassifier()
-    
-    # Try to load pre-trained models automatically
-    if classifier.is_trained:
-        print("✅ Models loaded from cache")
-    else:
-        print("⚠️ No pre-trained models found. Please train models.")
-    
-    return classifier
-
-
 class NewsClassifierApp:
     def __init__(self):
         # Initialize components
         self.preprocessor = TextPreprocessor()
         self.data_loader = DataLoader()
         
-        # Get cached classifier (loads once, persists forever)
-        self.classifier = load_classifier()
+        # Initialize classifier - it will auto-load models if available
+        self.classifier = NewsClassifier()
         
-        # Initialize session state if not exists
+        # Initialize session state
         if 'models_loaded' not in st.session_state:
             st.session_state.models_loaded = self.classifier.is_trained
+        if 'show_training' not in st.session_state:
+            st.session_state.show_training = False
 
     def setup_page(self):
         """Setup the main page layout and styling"""
         load_css()
 
         # Main header
-        st.markdown('<h1 class="main-header">📰 Advanced News Article Classification System</h1>',
+        st.markdown('<h1 class="main-header">Advanced News Article Classification System</h1>',
                     unsafe_allow_html=True)
 
         st.markdown("""
@@ -88,105 +72,126 @@ class NewsClassifierApp:
         """, unsafe_allow_html=True)
 
     def setup_sidebar(self):
-        """Setup sidebar with controls"""
+        """Setup sidebar with controls - Optimized for deployment"""
         with st.sidebar:
             st.header("Control Panel")
 
-            col1, col2 = st.columns(2)
+            # Always show load models button
+            if st.button("Load Models", use_container_width=True, type="secondary"):
+                self.load_existing_models()
 
-            with col1:
-                if st.button("Train Models", use_container_width=True, type="primary"):
-                    self.train_models()
-
-            with col2:
-                if st.button("Load Models", use_container_width=True):
-                    self.load_existing_models()
+            # Optional training section (collapsible)
+            with st.expander("Advanced Training", expanded=False):
+                st.info("""
+                **For Development Only:**
+                - Training requires dataset file
+                - May take 2-5 minutes
+                - Not recommended in production
+                """)
+                
+                if st.button("Train New Models", use_container_width=True):
+                    st.session_state.show_training = True
 
             st.markdown("---")
 
-            # Model status - Use the actual classifier state
+            # Model status
             st.subheader("Model Status")
             if self.classifier.is_trained:
-                st.success("✅ Models Loaded & Ready!")
-
-                # Display model performance
+                st.success("Models Loaded & Ready!")
+                
+                # Display model performance if available
                 if hasattr(self.classifier, 'model_performance') and self.classifier.model_performance:
                     for model, metrics in self.classifier.model_performance.items():
                         with st.expander(f"{model} Performance"):
                             st.metric("Accuracy", f"{metrics['accuracy']:.1%}")
                             st.metric("F1-Score", f"{metrics['f1_score']:.1%}")
-                            st.metric("Cross-val", f"{metrics['cv_mean']:.1%} ± {metrics['cv_std']:.1%}")
+                            if 'cv_mean' in metrics:
+                                st.metric("Cross-val", f"{metrics['cv_mean']:.1%} ± {metrics['cv_std']:.1%}")
             else:
-                st.warning("⚠️ Models Not Loaded")
-                st.info("Please train or load models to start classification")
+                st.warning("Models Not Loaded")
+                st.info("Click 'Load Models' above")
 
-            # Show current model status details
-            with st.expander("Model Details"):
-                st.write(f"Classifier is_trained: {self.classifier.is_trained}")
-                st.write(f"Session state: {st.session_state.models_loaded}")
-                if hasattr(self.classifier, 'models'):
-                    loaded_models = [name for name, model in self.classifier.models.items() if hasattr(model, 'predict')]
-                    st.write(f"Loaded models: {', '.join(loaded_models) if loaded_models else 'None'}")
+            # Quick actions
+            st.markdown("---")
+            st.subheader("Quick Actions")
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("Refresh", use_container_width=True):
+                    st.rerun()
+            with col2:
+                if st.button("Status", use_container_width=True):
+                    self.show_system_status()
 
             st.markdown("---")
             st.subheader("About")
             st.markdown("""
-            This system uses multiple machine learning algorithms:
-            - **Naive Bayes**: Fast and interpretable
-            - **SVM**: High accuracy with good generalization
-            - **Random Forest**: Robust ensemble method
+            **Pre-trained models included:**
+            - Naive Bayes
+            - Support Vector Machine  
+            - Random Forest
+            - Ensemble voting system
             """)
 
+    def show_system_status(self):
+        """Show detailed system status"""
+        status_data = {
+            "Component": ["Classifier", "Models Directory", "Vectorizer", "Preprocessor", "All Models"],
+            "Status": ["Ready" if self.classifier.is_trained else "Not Ready", 
+                      "Found" if os.path.exists('models') else "Missing",
+                      "Loaded" if hasattr(self.classifier, 'vectorizer') and self.classifier.vectorizer else "Missing",
+                      "Loaded" if hasattr(self.classifier, 'preprocessor') and self.classifier.preprocessor else "Missing",
+                      "Loaded" if self.classifier.is_trained else "Missing"]
+        }
+        st.dataframe(pd.DataFrame(status_data), use_container_width=True)
+
     def train_models(self):
-        """Train classification models"""
-        with st.spinner('Training models with comprehensive dataset...'):
+        """Training with deployment considerations"""
+        try:
+            # Check if data exists
             try:
                 texts, labels = self.data_loader.get_training_data()
+            except Exception as e:
+                st.error("Training data not available in deployment")
+                st.info("""
+                **For deployment:**
+                - Use pre-trained models included in the app
+                - Training requires local dataset file
+                - Contact administrator for model updates
+                """)
+                return
+
+            with st.spinner('Training models... (This may take 2-5 minutes)'):
                 performance = self.classifier.train(texts, labels)
-                
-                # Update both states
-                self.classifier.is_trained = True
                 st.session_state.models_loaded = True
                 st.session_state.performance = performance
+                st.success("Models trained and saved successfully!")
                 
-                st.success("✅ Models trained and saved successfully!")
-                st.info("🔄 Refresh the page to load the new models into memory")
-                
-                # Clear the cache to reload models on next run
-                st.cache_resource.clear()
-                
-                # Force a rerun to update the UI
-                st.rerun()
+                # Show training summary
+                with st.expander("Training Summary", expanded=True):
+                    self.show_training_summary(performance)
 
-            except Exception as e:
-                st.error(f"❌ Error training models: {str(e)}")
-                st.info("💡 Make sure your dataset file exists and is properly formatted")
+        except Exception as e:
+            st.error(f"Error training models: {str(e)}")
+            st.info("Training is disabled in production deployment. Using pre-trained models.")
 
     def load_existing_models(self):
-        """Reload models from disk (useful after training new models)"""
-        with st.spinner('🔄 Reloading models from disk...'):
-            try:
-                # Clear cache first to force reload
-                st.cache_resource.clear()
+        """Load pre-trained models - silent operation"""
+        with st.spinner('Loading models...'):
+            success = self.classifier.load_models()
+            if success:
+                st.session_state.models_loaded = True
+                st.success("Models loaded successfully!")
+                st.rerun()
+            else:
+                st.error("""
+                Models couldn't be loaded!
                 
-                # Reload classifier
-                self.classifier = load_classifier()
-                
-                if self.classifier.is_trained:
-                    # Update session state
-                    st.session_state.models_loaded = True
-                    st.session_state.performance = getattr(self.classifier, 'model_performance', {})
-                    
-                    st.success("✅ Models reloaded successfully!")
-                    
-                    # Force a rerun to update the UI
-                    st.rerun()
-                else:
-                    st.error("❌ No trained models found. Please train models first.")
-                    st.info("💡 Click 'Train Models' to create new models")
-                    
-            except Exception as e:
-                st.error(f"❌ Error loading models: {str(e)}")
+                **Automatic Solution:**
+                - Pre-trained models are included in deployment
+                - The app will use them automatically
+                - No action required
+                """)
 
     def show_training_summary(self, performance):
         """Display training performance summary"""
@@ -205,7 +210,7 @@ class NewsClassifierApp:
                 x='index',
                 y='value',
                 color='variable',
-                barmode='group',
+                bramode='group',
                 title='Model Performance Comparison',
                 labels={'index': 'Model', 'value': 'Score', 'variable': 'Metric'}
             )
@@ -241,10 +246,10 @@ class NewsClassifierApp:
             return text
 
         except requests.exceptions.HTTPError as e:
-            st.error(f"❌ HTTP Error: Could not fetch content from URL")
+            st.error(f"HTTP Error: Could not fetch content from URL")
             return None
         except Exception as e:
-            st.warning(f"⚠️ Could not fetch article content from URL. Please paste the text directly.")
+            st.warning(f"Could not fetch article content from URL. Please paste the text directly.")
             return None
 
     def analyze_sentiment(self, text):
@@ -284,24 +289,24 @@ class NewsClassifierApp:
     def validate_input(self, text):
         """Validate input text"""
         if not text or len(text.strip()) < MIN_TEXT_LENGTH:
-            st.error(f"❌ Please enter at least {MIN_TEXT_LENGTH} characters of text")
+            st.error(f"Please enter at least {MIN_TEXT_LENGTH} characters of text")
             return False
 
         if not self.preprocessor.is_english(text):
-            st.warning("⚠️ Non-English text detected. Results may be less accurate.")
+            st.warning("Non-English text detected. Results may be less accurate.")
 
         return True
 
     def run_analysis(self, article_text):
         """Run complete analysis on article text"""
-        with st.spinner("🔍 Analyzing article content..."):
+        with st.spinner("Analyzing article content..."):
             try:
                 results = self.classifier.predict(article_text)
                 sentiment, polarity, subjectivity, color = self.analyze_sentiment(article_text)
                 return results, sentiment, polarity, subjectivity, color
             except ValueError as e:
                 if "Models must be trained" in str(e):
-                    st.error("❌ Models are not trained or loaded. Please train or load models first.")
+                    st.error("Models are not trained or loaded. Please train or load models first.")
                     return None, None, None, None, None
                 else:
                     raise e
@@ -311,7 +316,7 @@ class NewsClassifierApp:
         if results is None:
             return
             
-        st.success("✅ Analysis Complete!")
+        st.success("Analysis Complete!")
 
         tab1, tab2, tab3, tab4, tab5 = st.tabs([
             "Classification", "Probabilities", "Sentiment",
@@ -428,10 +433,19 @@ class NewsClassifierApp:
 
     def main_interface(self):
         """Main application interface"""
+        # Show training interface if requested
+        if st.session_state.get('show_training', False):
+            st.header("Model Training")
+            self.train_models()
+            if st.button("Back to Classification"):
+                st.session_state.show_training = False
+                st.rerun()
+            return
+
         col1, col2 = st.columns([1, 1])
 
         with col1:
-            st.subheader("📝 Input Article")
+            st.subheader("Input Article")
 
             input_method = st.radio("Choose input method:", ["Enter Text", "Enter URL"], horizontal=True)
             article_text = ""
@@ -447,19 +461,24 @@ class NewsClassifierApp:
                 url = st.text_input("Enter article URL:", placeholder="https://example.com/news-article",
                                    help="Enter the full URL of the news article")
                 if url:
-                    with st.spinner("🌐 Extracting article content..."):
+                    with st.spinner("Extracting article content..."):
                         article_text = self.extract_article_content(url)
                         if article_text:
                             st.text_area("Extracted Content", article_text, height=250,
                                        help="Preview of extracted article content")
 
-            # Use the actual classifier state to determine if button should be enabled
+            # Use the actual classifier state
             analyze_disabled = not self.classifier.is_trained
             analyze_clicked = st.button("Analyze Article", type="primary",
                                        use_container_width=True, disabled=analyze_disabled)
 
             if not self.classifier.is_trained:
-                st.warning("Please train or load models first using the sidebar controls.")
+                st.info("""
+                **System is initializing...**
+                - Models are loading automatically
+                - This happens once on startup
+                - If this persists, click 'Load Models' in sidebar
+                """)
 
         with col2:
             st.subheader("Analysis Dashboard")
@@ -467,7 +486,7 @@ class NewsClassifierApp:
             if analyze_clicked and article_text:
                 if self.validate_input(article_text):
                     results, sentiment, polarity, subjectivity, color = self.run_analysis(article_text)
-                    if results is not None:  # Only display if analysis was successful
+                    if results is not None:
                         self.display_results(results, sentiment, polarity, subjectivity, color, article_text)
 
     def run(self):
