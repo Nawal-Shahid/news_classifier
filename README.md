@@ -23,7 +23,7 @@ It integrates **ensemble learning**, **sentiment analysis**, and **interactive v
 ## Screenshot
 
 <p align="center">
-  <img width="900" alt="News Classifier Demo" src="![Uploading ezgif.com-animated-gif-maker.gif…]()">
+  <img src="https://raw.githubusercontent.com/Nawal-Shahid/news-classifier/main/static/![Uploading ezgif.com-animated-gif-maker.gif…]()" alt="App Demo" width="900">
 </p>
 
 ---
@@ -104,35 +104,25 @@ Training Random Forest...
 Models saved successfully!
 ```
 
-**Model Accuracy Summary**
-==================================================
-Naive Bayes:
-  Accuracy: 1.000
-  F1-Score: 1.000
-  Cross-val: 0.488 ± 0.228
+## Model Accuracy Summary
 
-SVM:
-  Accuracy: 1.000
-  F1-Score: 1.000
-  Cross-val: 0.580 ± 0.102
+### Training Performance
 
-Random Forest:
-  Accuracy: 1.000
-  F1-Score: 1.000
-  Cross-val: 0.263 ± 0.040
+| Model         | Accuracy | F1-Score | Cross-Validation (Mean ± Std) |
+|---------------|-----------|-----------|-------------------------------|
+| Naive Bayes   | 1.000     | 1.000     | 0.488 ± 0.228                 |
+| SVM           | 1.000     | 1.000     | 0.580 ± 0.102                 |
+| Random Forest | 1.000     | 1.000     | 0.263 ± 0.040                 |
 
-==================================================
-Naive Bayes:
-  Test Accuracy: 0.167
-  Test F1-Score: 0.133
+---
 
-SVM:
-  Test Accuracy: 0.333
-  Test F1-Score: 0.233
+### Test Performance
 
-Random Forest:
-  Test Accuracy: 0.167
-  Test F1-Score: 0.133
+| Model         | Test Accuracy | Test F1-Score |
+|---------------|---------------|----------------|
+| Naive Bayes   | 0.167         | 0.133          |
+| SVM           | 0.333         | 0.233          |
+| Random Forest | 0.167         | 0.133          |
 
 ---
 
@@ -345,7 +335,7 @@ See the `LICENSE` file for more details.
 **Nawal Shahid**
 GitHub: [@Nawal-Shahid](https://github.com/Nawal-Shahid)
 LinkedIn: [linkedin.com/in/nawal-shahid](https://www.linkedin.com/in/nawal-shahid-015529263/)
-Email: [nawalshahi113d@gmail.com](mailto:nawalshahid113@gmail.com)
+Email: [nawalshahi113@gmail.com](mailto:nawalshahid113@gmail.com)
 
 ---
 
