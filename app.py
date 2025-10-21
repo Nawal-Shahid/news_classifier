@@ -39,18 +39,36 @@ def load_css():
         pass
 
 
+# Cache the classifier to load models only once and keep in memory
+@st.cache_resource
+def load_classifier():
+    """
+    Load classifier with models - cached across all sessions.
+    This runs only ONCE when the app starts, then stays in memory.
+    """
+    classifier = NewsClassifier()
+    
+    # Try to load pre-trained models automatically
+    if classifier.is_trained:
+        print("✅ Models loaded from cache")
+    else:
+        print("⚠️ No pre-trained models found. Please train models.")
+    
+    return classifier
+
+
 class NewsClassifierApp:
     def __init__(self):
         # Initialize components
         self.preprocessor = TextPreprocessor()
         self.data_loader = DataLoader()
         
-        # Initialize classifier
-        self.classifier = NewsClassifier()
+        # Get cached classifier (loads once, persists forever)
+        self.classifier = load_classifier()
         
         # Initialize session state if not exists
         if 'models_loaded' not in st.session_state:
-            st.session_state.models_loaded = False
+            st.session_state.models_loaded = self.classifier.is_trained
 
     def setup_page(self):
         """Setup the main page layout and styling"""
@@ -132,6 +150,10 @@ class NewsClassifierApp:
                 st.session_state.performance = performance
                 
                 st.success("✅ Models trained and saved successfully!")
+                st.info("🔄 Refresh the page to load the new models into memory")
+                
+                # Clear the cache to reload models on next run
+                st.cache_resource.clear()
                 
                 # Force a rerun to update the UI
                 st.rerun()
@@ -141,17 +163,21 @@ class NewsClassifierApp:
                 st.info("💡 Make sure your dataset file exists and is properly formatted")
 
     def load_existing_models(self):
-        """Load pre-trained models"""
-        with st.spinner('🔄 Loading pre-trained models...'):
+        """Reload models from disk (useful after training new models)"""
+        with st.spinner('🔄 Reloading models from disk...'):
             try:
-                success = self.classifier.load_models()
-                if success:
-                    # Update both states
-                    self.classifier.is_trained = True
+                # Clear cache first to force reload
+                st.cache_resource.clear()
+                
+                # Reload classifier
+                self.classifier = load_classifier()
+                
+                if self.classifier.is_trained:
+                    # Update session state
                     st.session_state.models_loaded = True
                     st.session_state.performance = getattr(self.classifier, 'model_performance', {})
                     
-                    st.success("✅ Models loaded successfully!")
+                    st.success("✅ Models reloaded successfully!")
                     
                     # Force a rerun to update the UI
                     st.rerun()
