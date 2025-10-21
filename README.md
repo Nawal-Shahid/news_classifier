@@ -22,10 +22,10 @@ It integrates **ensemble learning**, **sentiment analysis**, and **interactive v
 
 ## Screenshot
 
-<p align="center">
-  <img src="https://raw.githubusercontent.com/Nawal-Shahid/news-classifier/main/static/![Uploading ezgif.com-animated-gif-maker.gif…]()" alt="App Demo" width="900">
-</p>
 
+<p align="center">
+  <img src="https://github.com/Nawal-Shahid/news-classifier/blob/main/demo/app-demo.gif?raw=true" alt="Live Demo" width="800">
+</p>
 ---
 
 ## Key Features
@@ -72,11 +72,6 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-#### Download NLTK data
-
-```python
-python -c "import nltk; nltk.download('stopwords'); nltk.download('wordnet'); nltk.download('omw-1.4')"
-```
 
 ---
 
@@ -166,28 +161,33 @@ Tabs include:
 ```
 news_classifier/
 │
-├── app.py
-├── train_model.py
-├── test_classifier.py
-├── config.py
-├── requirements.txt
+├── app.py                      # Main Streamlit application
+├── train_model.py              # Model training script
+├── test_classifier.py          # Testing and evaluation script
+├── config.py                   # Configuration constants
+├── requirements.txt            # Python dependencies
+├── README.md                   # Project documentation
 │
 ├── data/
-│   └── news_dataset.csv
+│   └── news_dataset.csv        # Training dataset (5 categories)
 │
-├── models/
-│   ├── vectorizer.pkl
-│   ├── naive_bayes.pkl
-│   ├── svm.pkl
-│   └── random_forest.pkl
+├── models/                     # Saved trained models
+│   ├── vectorizer.pkl          # TF-IDF vectorizer
+│   ├── preprocessor.pkl        # Text preprocessor
+│   ├── categories.pkl          # Category labels
+│   ├── performance.pkl         # Model metrics
+│   ├── naive_bayes.pkl         # Naive Bayes model
+│   ├── svm.pkl                 # Support Vector Machine
+│   └── random_forest.pkl       # Random Forest model
 │
 ├── utils/
-│   ├── classifier.py
-│   ├── data_loader.py
-│   └── preprocessor.py
+│   ├── __init__.py
+│   ├── classifier.py           # ML model implementation
+│   ├── data_loader.py          # Dataset loading utilities
+│   └── preprocessor.py         # Text preprocessing pipeline
 │
 └── static/
-    └── styles.css
+    └── styles.css              # Custom CSS styling
 ```
 
 ---
