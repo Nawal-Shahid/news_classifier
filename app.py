@@ -72,7 +72,7 @@ class NewsClassifierApp:
     def setup_sidebar(self):
         """Setup sidebar with controls"""
         with st.sidebar:
-            st.header("🔧 Control Panel")
+            st.header("Control Panel")
 
             col1, col2 = st.columns(2)
 
@@ -111,7 +111,7 @@ class NewsClassifierApp:
                     st.write(f"Loaded models: {', '.join(loaded_models) if loaded_models else 'None'}")
 
             st.markdown("---")
-            st.subheader("ℹ️ About")
+            st.subheader("About")
             st.markdown("""
             This system uses multiple machine learning algorithms:
             - **Naive Bayes**: Fast and interpretable
@@ -121,7 +121,7 @@ class NewsClassifierApp:
 
     def train_models(self):
         """Train classification models"""
-        with st.spinner('🔄 Training models with comprehensive dataset...'):
+        with st.spinner('Training models with comprehensive dataset...'):
             try:
                 texts, labels = self.data_loader.get_training_data()
                 performance = self.classifier.train(texts, labels)
@@ -383,7 +383,7 @@ class NewsClassifierApp:
         except Exception as e:
             st.info("Feature importance analysis requires model training with specific attributes.")
 
-        st.subheader("📏 Text Statistics")
+        st.subheader("Text Statistics")
         col1, col2, col3, col4 = st.columns(4)
 
         word_count = len(article_text.split())
