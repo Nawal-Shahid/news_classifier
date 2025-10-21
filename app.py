@@ -45,9 +45,12 @@ class NewsClassifierApp:
         self.preprocessor = TextPreprocessor()
         self.data_loader = DataLoader()
         
-        # Initialize classifier but don't load models yet
+        # Initialize classifier
         self.classifier = NewsClassifier()
-        self.models_loaded = False
+        
+        # Initialize session state if not exists
+        if 'models_loaded' not in st.session_state:
+            st.session_state.models_loaded = False
 
     def setup_page(self):
         """Setup the main page layout and styling"""
@@ -83,10 +86,10 @@ class NewsClassifierApp:
 
             st.markdown("---")
 
-            # Model status
+            # Model status - Use the actual classifier state
             st.subheader("Model Status")
-            if self.models_loaded:
-                st.success("✅ Models Loaded")
+            if self.classifier.is_trained:
+                st.success("✅ Models Loaded & Ready!")
 
                 # Display model performance
                 if hasattr(self.classifier, 'model_performance') and self.classifier.model_performance:
@@ -98,6 +101,14 @@ class NewsClassifierApp:
             else:
                 st.warning("⚠️ Models Not Loaded")
                 st.info("Please train or load models to start classification")
+
+            # Show current model status details
+            with st.expander("Model Details"):
+                st.write(f"Classifier is_trained: {self.classifier.is_trained}")
+                st.write(f"Session state: {st.session_state.models_loaded}")
+                if hasattr(self.classifier, 'models'):
+                    loaded_models = [name for name, model in self.classifier.models.items() if hasattr(model, 'predict')]
+                    st.write(f"Loaded models: {', '.join(loaded_models) if loaded_models else 'None'}")
 
             st.markdown("---")
             st.subheader("ℹ️ About")
@@ -114,14 +125,16 @@ class NewsClassifierApp:
             try:
                 texts, labels = self.data_loader.get_training_data()
                 performance = self.classifier.train(texts, labels)
-                self.models_loaded = True
+                
+                # Update both states
+                self.classifier.is_trained = True
                 st.session_state.models_loaded = True
                 st.session_state.performance = performance
+                
                 st.success("✅ Models trained and saved successfully!")
-
-                # Show training summary
-                with st.expander("📊 Training Summary", expanded=True):
-                    self.show_training_summary(performance)
+                
+                # Force a rerun to update the UI
+                st.rerun()
 
             except Exception as e:
                 st.error(f"❌ Error training models: {str(e)}")
@@ -133,13 +146,19 @@ class NewsClassifierApp:
             try:
                 success = self.classifier.load_models()
                 if success:
-                    self.models_loaded = True
+                    # Update both states
+                    self.classifier.is_trained = True
                     st.session_state.models_loaded = True
                     st.session_state.performance = getattr(self.classifier, 'model_performance', {})
+                    
                     st.success("✅ Models loaded successfully!")
+                    
+                    # Force a rerun to update the UI
+                    st.rerun()
                 else:
                     st.error("❌ No trained models found. Please train models first.")
                     st.info("💡 Click 'Train Models' to create new models")
+                    
             except Exception as e:
                 st.error(f"❌ Error loading models: {str(e)}")
 
@@ -357,7 +376,7 @@ class NewsClassifierApp:
         try:
             importance_df = self.classifier.get_feature_importance(top_n=10)
             if importance_df is not None:
-                st.subheader("🔍 Key Features by Category")
+                st.subheader("Key Features by Category")
                 fig = px.bar(importance_df, x='Importance', y='Feature', color='Category',
                             orientation='h', title='Most Important Features for Classification')
                 st.plotly_chart(fig, use_container_width=True)
@@ -386,7 +405,7 @@ class NewsClassifierApp:
         col1, col2 = st.columns([1, 1])
 
         with col1:
-            st.subheader("Input Article")
+            st.subheader("📝 Input Article")
 
             input_method = st.radio("Choose input method:", ["Enter Text", "Enter URL"], horizontal=True)
             article_text = ""
@@ -408,11 +427,13 @@ class NewsClassifierApp:
                             st.text_area("Extracted Content", article_text, height=250,
                                        help="Preview of extracted article content")
 
-            analyze_clicked = st.button("🔍 Analyze Article", type="primary",
-                                       use_container_width=True, disabled=not self.models_loaded)
+            # Use the actual classifier state to determine if button should be enabled
+            analyze_disabled = not self.classifier.is_trained
+            analyze_clicked = st.button("Analyze Article", type="primary",
+                                       use_container_width=True, disabled=analyze_disabled)
 
-            if not self.models_loaded:
-                st.warning("⚠️ Please train or load models first using the sidebar controls.")
+            if not self.classifier.is_trained:
+                st.warning("Please train or load models first using the sidebar controls.")
 
         with col2:
             st.subheader("Analysis Dashboard")
@@ -427,30 +448,6 @@ class NewsClassifierApp:
         """Main application runner"""
         self.setup_page()
         self.setup_sidebar()
-        
-        # Initialize session state
-        if 'models_loaded' not in st.session_state:
-            st.session_state.models_loaded = False
-        
-        # Check if models are already loaded in the classifier
-        if self.classifier.is_trained:
-            self.models_loaded = True
-            st.session_state.models_loaded = True
-        else:
-            self.models_loaded = st.session_state.models_loaded
-        
-        # Show warning if models aren't loaded
-        if not self.models_loaded:
-            st.warning("""
-            **🔧 Models Not Loaded**
-            
-            To use the classification features:
-            1. **Train Models** - Click "Train Models" in the sidebar to train new models with your dataset
-            2. **Load Models** - Click "Load Models" if you have pre-trained models
-            
-            Make sure your `news_dataset.csv` file exists in the data directory!
-            """)
-        
         self.main_interface()
 
 
