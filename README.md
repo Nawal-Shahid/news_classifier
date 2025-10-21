@@ -20,14 +20,6 @@ It integrates **ensemble learning**, **sentiment analysis**, and **interactive v
 
 ---
 
-## Screenshot
-
-
-<p align="center">
-  <img src="https://github.com/Nawal-Shahid/news-classifier/blob/main/demo/app-demo.gif?raw=true" alt="Live Demo" width="800">
-</p>
----
-
 ## Key Features
 
 - **Ensemble Machine Learning:** Combines Naive Bayes, SVM, and Random Forest for superior accuracy.  
