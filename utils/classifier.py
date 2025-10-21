@@ -142,24 +142,47 @@ class NewsClassifier:
 
     def load_models(self):
         """Load pre-trained models"""
+        import os
+        
+        # Debug: Show what path we're looking in
+        print(f"🔍 Looking for models in: {MODELS_DIR}")
+        print(f"🔍 Path exists: {MODELS_DIR.exists()}")
+        
+        if MODELS_DIR.exists():
+            print(f"🔍 Files in directory: {list(MODELS_DIR.glob('*.pkl'))}")
+        
         try:
             self.vectorizer = joblib.load(MODELS_DIR / 'vectorizer.pkl')
+            print("✅ Loaded vectorizer.pkl")
+            
             self.preprocessor = joblib.load(MODELS_DIR / 'preprocessor.pkl')
+            print("✅ Loaded preprocessor.pkl")
+            
             self.categories = joblib.load(MODELS_DIR / 'categories.pkl')
+            print("✅ Loaded categories.pkl")
+            
             self.model_performance = joblib.load(MODELS_DIR / 'performance.pkl')
+            print("✅ Loaded performance.pkl")
 
             for name in self.models.keys():
                 filename = name.lower().replace(' ', '_') + '.pkl'
                 self.models[name] = joblib.load(MODELS_DIR / filename)
+                print(f"✅ Loaded {filename}")
 
             self.is_trained = True
-            print("✅ Models loaded successfully!")
+            print("✅ All models loaded successfully!")
             return True
+            
         except FileNotFoundError as e:
-            print(f"❌ Model files not found: {e}")
+            print(f"❌ Model file not found: {e}")
+            print(f"💡 Make sure models are in: {MODELS_DIR}")
+            print(f"💡 Run 'python train_model.py' to create models")
             return False
+            
         except Exception as e:
             print(f"❌ Error loading models: {e}")
+            import traceback
+            traceback.print_exc()
             return False
 
     def get_feature_importance(self, top_n=15):
