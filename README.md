@@ -10,6 +10,7 @@
 <p align="center" style="color:#003366;">
   Built for intelligent and accurate news categorization using machine learning and natural language processing.
 </p>
+<img width="1920" height="1080" alt="Screenshot (1233)" src="https://github.com/user-attachments/assets/511157f3-9b36-4091-9272-33f8597faa62" />
 
 ---
 
@@ -42,7 +43,7 @@ It integrates **ensemble learning**, **sentiment analysis**, and **interactive v
 ### Installation
 
 ```bash
-git clone https://github.com/yourusername/news-classifier.git
+[git clone https://github.com/Nawal-Shahid/news_classifier.git]
 cd news-classifier
 ````
 
